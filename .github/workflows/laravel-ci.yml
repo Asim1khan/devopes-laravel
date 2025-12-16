@@ -9,6 +9,19 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: laravel
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      APP_ENV: testing
+      APP_DEBUG: true
+      CACHE_DRIVER: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+
     services:
       mysql:
         image: mysql:8.0
@@ -30,35 +43,42 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: "8.2"
           extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
       - name: Wait for MySQL
-        run: sleep 10
-
-      # Run everything in one command with environment variables
-      - name: Setup and test Laravel
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: laravel
-          DB_USERNAME: root
-          DB_PASSWORD: root
-          APP_ENV: testing
-          APP_KEY: base64:SomeRandomKeyHereReplaceWithRealOne
         run: |
-          # Test database connection
-          mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS laravel;"
+          for i in {1..30}; do
+            if mysql -h127.0.0.1 -uroot -proot -e "SELECT 1;" 2>/dev/null; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Waiting for MySQL... ($i/30)"
+            sleep 2
+          done
 
-          # Run migrations first
-          php artisan migrate --force
+      - name: Create database
+        run: mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS laravel;"
 
-          # Generate key if needed
-          php artisan key:generate --force
+      # Create a dummy .env file just for key generation
+      - name: Create temporary .env file
+        run: |
+          touch .env
+          echo "APP_ENV=testing" > .env
 
-          # Run tests
-          php artisan test
+      # Generate the key and force write to the dummy file
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      # Now remove the .env file since we don't need it
+      - name: Remove .env file (optional)
+        run: rm .env
+
+      - name: Run migrations
+        run: php artisan migrate --force
+
+      - name: Run tests
+        run: php artisan test
