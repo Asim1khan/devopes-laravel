@@ -30,8 +30,15 @@ jobs:
 
       # Step 2: Prepare .env file
       - name: Prepare .env
+        run: cp .env.example .env
+
+      # Step 3: Install PHP dependencies
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      # Step 4: Configure database in .env
+      - name: Configure database
         run: |
-          cp .env.example .env
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
           sed -i 's/DB_HOST=.*/DB_HOST=mysql/' .env
           sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
@@ -39,18 +46,14 @@ jobs:
           sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
           sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
 
-      # Step 3: Clear Laravel config cache (important!)
+      # Step 5: Clear config cache (ensure Laravel reads .env)
       - name: Clear config cache
         run: php artisan config:clear
 
-      # Step 4: Install PHP dependencies
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      # Step 5: Run migrations
+      # Step 6: Run migrations
       - name: Run migrations
         run: php artisan migrate --force
 
-      # Step 6: Run Laravel tests
-      - name: Run tests
+      # Step 7: Run Laravel tests
+      - name: Run Laravel tests
         run: php artisan test
