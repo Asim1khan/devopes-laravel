@@ -18,7 +18,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping"
+          --health-cmd="mysqladmin ping -h mysql -uroot -proot"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
@@ -42,12 +42,18 @@ jobs:
           sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
           sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
 
-      # Step 4: Wait for MySQL to be ready
+      # Step 4: Wait for MySQL to be ready (with timeout)
       - name: Wait for MySQL
         run: |
-          until mysqladmin ping -h mysql --silent; do
+          count=0
+          until mysqladmin ping -h mysql -uroot -proot --silent; do
             echo "Waiting for MySQL..."
             sleep 2
+            count=$((count+1))
+            if [ $count -ge 30 ]; then
+              echo "MySQL did not become ready in time"
+              exit 1
+            fi
           done
 
       # Step 5: Build Docker image
