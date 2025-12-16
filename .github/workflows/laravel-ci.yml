@@ -1,4 +1,4 @@
-name: Laravel CI - Step 1
+name: My First DevOps CI
 
 on:
   push:
