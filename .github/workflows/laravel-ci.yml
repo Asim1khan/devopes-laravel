@@ -1,4 +1,4 @@
-name: My First DevOps CI
+name: Laravel CI - Docker Build
 
 on:
   push:
@@ -13,5 +13,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check project files
-        run: ls -la
+      - name: Build Docker image
+        run: docker build -t laravel-app .
