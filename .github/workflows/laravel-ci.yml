@@ -1,4 +1,4 @@
-name: Laravel CI - Docker + MySQL + Tests
+name: Laravel CI - MySQL + Tests
 
 on:
   push:
@@ -42,28 +42,14 @@ jobs:
           sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
           sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
 
-      # Step 4: Wait for MySQL to be ready (with timeout)
-      - name: Wait for MySQL
-        run: |
-          count=0
-          until mysqladmin ping -h mysql -uroot -proot --silent; do
-            echo "Waiting for MySQL..."
-            sleep 2
-            count=$((count+1))
-            if [ $count -ge 30 ]; then
-              echo "MySQL did not become ready in time"
-              exit 1
-            fi
-          done
+      # Step 4: Install dependencies
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      # Step 5: Build Docker image
-      - name: Build Docker image
-        run: docker build -t laravel-app .
-
-      # Step 6: Run migrations
+      # Step 5: Run migrations
       - name: Run migrations
-        run: docker run --rm --network host laravel-app php artisan migrate --force
+        run: php artisan migrate --force
 
-      # Step 7: Run Laravel tests
-      - name: Run tests
-        run: docker run --rm --network host laravel-app php artisan test
+      # Step 6: Run tests
+      - name: Run Laravel tests
+        run: php artisan test
