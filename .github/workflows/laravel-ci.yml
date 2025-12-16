@@ -1,4 +1,4 @@
-name: Laravel CI - Docker + MySQL
+name: Laravel CI - Docker + MySQL + Tests
 
 on:
   push:
@@ -24,26 +24,40 @@ jobs:
           --health-retries=3
 
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Step 2: Prepare .env file
       - name: Prepare env
         run: cp .env.example .env
 
+      # Step 3: Configure database in .env
       - name: Configure database
         run: |
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/DB_HOST=.*/DB_HOST=mysql/' .env
           sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
           sed -i 's/DB_DATABASE=.*/DB_DATABASE=laravel/' .env
           sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
           sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
 
+      # Step 4: Wait for MySQL to be ready
+      - name: Wait for MySQL
+        run: |
+          until mysqladmin ping -h mysql --silent; do
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+
+      # Step 5: Build Docker image
       - name: Build Docker image
         run: docker build -t laravel-app .
 
+      # Step 6: Run migrations
       - name: Run migrations
-        run: |
-          docker run --rm \
-            --network host \
-            laravel-app php artisan migrate --force
+        run: docker run --rm --network host laravel-app php artisan migrate --force
+
+      # Step 7: Run Laravel tests
+      - name: Run tests
+        run: docker run --rm --network host laravel-app php artisan test
