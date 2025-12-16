@@ -1,0 +1,17 @@
+name: Laravel CI - Step 1
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check project files
+        run: ls -la
